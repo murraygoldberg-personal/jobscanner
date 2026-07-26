@@ -1,0 +1,64 @@
+name: Daily job scan
+
+on:
+  schedule:
+    # 13:00 UTC = 06:00 America/Vancouver (PDT). Adjust as you like.
+    # Note: GitHub cron can lag by a few minutes and may skip during outages.
+    - cron: "0 13 * * *"
+  workflow_dispatch: {}   # lets you trigger a run manually from the Actions tab
+
+# Needed so the workflow can commit seen.json / digests back to the repo.
+permissions:
+  contents: write
+
+concurrency:
+  group: job-scan
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run pipeline
+        id: pipeline
+        continue-on-error: true   # don't halt the job — we still want to commit
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+        run: python pipeline.py
+
+      # Runs even when the pipeline exits non-zero (a broken source), so state
+      # from the healthy sources is still saved and those jobs don't re-alert
+      # tomorrow.
+      - name: Commit state and digest
+        if: always()
+        run: |
+          git config user.name  "job-scanner-bot"
+          git config user.email "job-scanner-bot@users.noreply.github.com"
+          git add seen.json digests/ || true
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "chore: update seen state and digest [skip ci]"
+            git push
+          fi
+
+      # Final gate: if the pipeline flagged a broken source, end the job red so
+      # GitHub sends you its automatic failed-run email. This is your Indeed/
+      # JobSpy early-warning. Fix: `pip install -U python-jobspy`, bump the pin.
+      - name: Fail run if a source was broken
+        if: steps.pipeline.outcome == 'failure'
+        run: |
+          echo "A source returned zero jobs unexpectedly — see pipeline log above."
+          exit 1
