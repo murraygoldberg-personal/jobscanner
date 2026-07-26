@@ -188,6 +188,10 @@ def _send_email(matches: list[Job], problems: list[str] | None = None) -> None:
         headers={
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
+            # Resend rejects requests with no User-Agent (error 1010 / 403)
+            # before they reach the API. Python's urllib sends none by default,
+            # so we set one explicitly. curl and the Resend SDKs do this too.
+            "User-Agent": "jobscanner/1.0",
         },
         method="POST",
     )
