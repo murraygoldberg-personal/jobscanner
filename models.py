@@ -26,10 +26,13 @@ class Job:
     description: str = ""
     # Filled in automatically by __post_init__ — do not pass manually.
     id: str = field(default="", init=False)
-    # Populated by the AI filter for matched jobs: a strength label
-    # ("strong" / "medium" / "weak") and a one-line reason.
+    # Populated by the AI filter for matched jobs: an overall strength label
+    # ("strong" / "medium" / "weak"), a one-line reason, and per-dimension fit
+    # ratings (field / location / job_type / seniority), each "strong"/
+    # "medium"/"weak", used to render the little scorecard of dots.
     match_strength: str = field(default="", init=False)
     match_reason: str = field(default="", init=False)
+    match_dimensions: dict = field(default_factory=dict, init=False)
 
     def __post_init__(self) -> None:
         self.title = _clean(self.title)

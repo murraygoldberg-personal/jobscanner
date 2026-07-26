@@ -25,6 +25,27 @@ def _strength_badge(s: str) -> str:
     }.get(s, "⚪ Match")
 
 
+# The four scored dimensions, each with a label emoji. Order = display order.
+_DIMENSIONS = [
+    ("field", "🔬"),      # field / research-area fit
+    ("location", "📍"),   # location fit
+    ("job_type", "💼"),   # role type (permanent/TT vs post-doc)
+    ("seniority", "🎓"),  # career-stage fit
+]
+
+
+def _dot(rating: str) -> str:
+    return {"strong": "🟢", "medium": "🟡", "weak": "🔴"}.get(rating, "⚪")
+
+
+def _scorecard_text(dims: dict) -> str:
+    """Compact one-line scorecard like '🔬🟢 📍🟡 💼🟢 🎓🟢'. Empty if no dims."""
+    if not dims:
+        return ""
+    return "  ".join(f"{emoji}{_dot(dims.get(key, ''))}"
+                     for key, emoji in _DIMENSIONS)
+
+
 def _render_match_entries(matches: list[Job]) -> str:
     """Just the match blocks — no date header. Used for both fresh writes and
     same-day appends."""
@@ -35,6 +56,10 @@ def _render_match_entries(matches: list[Job]) -> str:
         lines.append(f"### {_strength_badge(j.match_strength)} — "
                      f"[{j.title}]({j.url})")
         lines.append(f"{j.source}{comp}{loc}")
+        sc = _scorecard_text(j.match_dimensions)
+        if sc:
+            lines.append("")
+            lines.append(f"{sc}  ·  🔬 field  📍 location  💼 job-type  🎓 seniority")
         if j.match_reason:
             lines.append("")
             lines.append(f"> {j.match_reason}")
@@ -83,11 +108,24 @@ def _render_html(matches: list[Job], problems: list[str] | None = None) -> str:
             f'<br><span style="color:#374151">{j.match_reason}</span>'
             if j.match_reason else ""
         )
+        scorecard = ""
+        if j.match_dimensions:
+            cells = "".join(
+                f'<span style="margin-right:12px">{emoji}&nbsp;'
+                f'{_dot(j.match_dimensions.get(key, ""))}</span>'
+                for key, emoji in _DIMENSIONS
+            )
+            scorecard = (
+                f'<br><span style="font-size:13px;color:#6b7280">{cells}</span>'
+                '<br><span style="font-size:11px;color:#9ca3af">'
+                '🔬 field &nbsp; 📍 location &nbsp; 💼 job-type &nbsp; 🎓 seniority'
+                '</span>'
+            )
         rows.append(
-            f'<li style="margin-bottom:14px">'
+            f'<li style="margin-bottom:16px">'
             f'{badge} — <a href="{j.url}"><strong>{j.title}</strong></a>'
             f'<br><small style="color:#6b7280">{meta}</small>'
-            f'{reason}</li>'
+            f'{scorecard}{reason}</li>'
         )
     parts.append(
         f"<h2>{len(matches)} new matching "

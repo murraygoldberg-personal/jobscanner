@@ -47,16 +47,24 @@ def _judge_batch(client, criteria: str, batch: list[Job]) -> dict[str, dict]:
     system = (
         "You are a job-matching filter for a specific candidate. Given the "
         "candidate criteria and a list of job postings as JSON, identify ONLY "
-        "the postings that genuinely match. For each match, rate how strong the "
-        "fit is and explain why in one sentence, grounded in the criteria "
-        "(mention field fit and location).\n\n"
+        "the postings that genuinely match. For each match, give an overall "
+        "strength, a one-sentence reason, and a rating on four separate "
+        "dimensions.\n\n"
         "Respond with ONLY a JSON array — no prose, no markdown, no code "
         "fences. Each element is an object with exactly these keys:\n"
         '  "id": the posting id, as a double-quoted string\n'
-        '  "strength": one of "strong", "medium", "weak"\n'
+        '  "strength": overall fit — one of "strong", "medium", "weak"\n'
         '  "reason": one sentence explaining the match\n'
+        '  "field": field/research-area fit — "strong"/"medium"/"weak"\n'
+        '  "location": location fit vs the preference list — "strong"/"medium"/"weak"\n'
+        '  "job_type": role-type fit (permanent/tenure-track scores higher than '
+        'post-doc/fixed-term) — "strong"/"medium"/"weak"\n'
+        '  "seniority": career-stage fit for someone finishing a first post-doc '
+        '— "strong"/"medium"/"weak"\n'
         'Example: [{"id":"9dad6b2335569b6a","strength":"strong",'
-        '"reason":"Metacomplexity post-doc at UBC — top field and location fit."}]'
+        '"reason":"Tenure-track complexity role at UBC — top field and location.",'
+        '"field":"strong","location":"strong","job_type":"strong",'
+        '"seniority":"strong"}]'
         "\nIf nothing matches, return []."
     )
     user = (
@@ -82,9 +90,17 @@ def _judge_batch(client, criteria: str, batch: list[Job]) -> dict[str, dict]:
         for item in parsed:
             jid = str(item.get("id", ""))
             if jid in batch_ids:
+                def _norm(k):
+                    return str(item.get(k, "medium")).lower()
                 verdicts[jid] = {
-                    "strength": str(item.get("strength", "medium")).lower(),
+                    "strength": _norm("strength"),
                     "reason": str(item.get("reason", "")).strip(),
+                    "dimensions": {
+                        "field": _norm("field"),
+                        "location": _norm("location"),
+                        "job_type": _norm("job_type"),
+                        "seniority": _norm("seniority"),
+                    },
                 }
         return verdicts
     except (json.JSONDecodeError, TypeError, AttributeError):
@@ -99,7 +115,7 @@ def _judge_batch(client, criteria: str, batch: list[Job]) -> dict[str, dict]:
         print(f"[filter] recovered {len(found)} id(s) from non-JSON output "
               "(strength/reason unavailable for these)", file=sys.stderr)
         for jid in found:
-            verdicts[jid] = {"strength": "unknown", "reason": ""}
+            verdicts[jid] = {"strength": "unknown", "reason": "", "dimensions": {}}
         return verdicts
 
     print(f"[filter] could not parse model output: {text[:200]!r}",
@@ -132,6 +148,7 @@ def filter_jobs(jobs: list[Job]) -> list[Job]:
             continue
         j.match_strength = v["strength"]
         j.match_reason = v["reason"]
+        j.match_dimensions = v.get("dimensions", {})
         matches.append(j)
 
     # Sort strongest first so the best fits are at the top of the digest.
