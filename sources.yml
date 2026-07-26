@@ -46,6 +46,14 @@ rss:
   #  a valid feed. If you want that board, find its real RSS URL first. The
   #  cstheory-jobs source above already covers theory roles well.)
 
+  # --- AcademicKeys: Sciences (incl. Computer/Information Sciences) ----------
+  # AcademicKeys publishes per-discipline RSS at <subdomain>.academickeys.com/rss.
+  # Verify on first run: if it errors, try engineering.academickeys.com/rss
+  # instead, or drop it. Low-volume academic board, so empty is fine.
+  - name: academickeys_sciences
+    feed_url: "https://sciences.academickeys.com/rss"
+    expect_nonzero: false
+
 indeed:
   # One scrape per search term. Keep the list short — each is a separate
   # request and Indeed rate-limits. Location "Remote" plus specific theory
