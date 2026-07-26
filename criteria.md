@@ -34,6 +34,23 @@ be worth surfacing, but a role that's weak on BOTH should be rejected.
 5. Major European cities.
 Roles outside these should only surface if the field fit is exceptional.
 
+**Location dot rating (strict — controls the 📍 location dot):**
+- 🟢 strong ONLY for Vancouver BC / nearby, Toronto, or a major US west-coast
+  city (e.g. Seattle, Portland, San Francisco/Bay Area, Los Angeles, San Diego).
+- 🟡 medium for elsewhere in Canada, or major US / UK cities.
+- 🔴 weak for anywhere else (other European cities, elsewhere, unclear).
+Do not rate location "strong" just because a city is prestigious — strong is
+reserved for the Vancouver / Toronto / west-coast band above.
+
+**Location dot rating (be strict — this controls the 📍 dot):**
+- GREEN (strong) ONLY for: Vancouver BC / nearby, OR a major US west-coast city
+  (e.g. Seattle, San Francisco, Bay Area, Los Angeles, Portland, San Diego).
+  Nothing else earns green.
+- YELLOW (medium) for: Toronto, elsewhere in Canada, or a major US (non-west-
+  coast) or major UK city.
+- RED (weak) for: everywhere else, including major European cities and any
+  location not listed above.
+
 ## Role type and strength (IMPORTANT — this drives the rating)
 Rate the strength of each match with role type as a major factor:
 - **Tenure-track faculty** (assistant professor, lecturer on a permanent/
