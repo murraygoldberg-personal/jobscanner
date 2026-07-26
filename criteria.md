@@ -9,8 +9,11 @@ be worth surfacing, but a role that's weak on BOTH should be rejected.
 - Currently early in a post-doc at Oxford University.
 - Master's in philosophy of science, University of Cambridge (UK).
 - B.Sc., University of Toronto.
-- Seeking early-career researcher roles — post-doc, research fellow, or
-  entry-level faculty/research-scientist positions.
+- She is ALREADY in a strong post-doc, so the goal now is the NEXT step:
+  permanent and especially tenure-track academic positions, or permanent
+  research-scientist roles at labs. Post-docs and fellowships are still worth
+  seeing (a truly exceptional one can beat a mediocre faculty role), but they
+  are no longer the target — they should not, on their own, be top-rated.
 
 ## Field fit (highest priority)
 - Best: academic research positions (universities) or commercial research labs
@@ -31,9 +34,24 @@ be worth surfacing, but a role that's weak on BOTH should be rejected.
 5. Major European cities.
 Roles outside these should only surface if the field fit is exceptional.
 
-## Seniority
-- Target early-career: post-doc, research fellow, junior faculty, or research
-  scientist. Reject roles clearly aimed at senior/tenured/established figures.
+## Role type and strength (IMPORTANT — this drives the rating)
+Rate the strength of each match with role type as a major factor:
+- **Tenure-track faculty** (assistant professor, lecturer on a permanent/
+  tenure track) → the top target. A good field + location fit here is STRONG.
+- **Permanent / continuing positions** — permanent research scientist, teaching
+  professor, or other continuing roles → also top-tier; treat like tenure-track.
+- **Post-docs, fellowships, fixed-term research associate roles** → still worth
+  surfacing, but cap them at MEDIUM unless genuinely exceptional (e.g. a
+  prestigious named fellowship in metacomplexity in a top-preference location),
+  in which case medium-to-strong is fine. A run-of-the-mill post-doc, however
+  good the field fit, should be WEAK-to-MEDIUM — she already has a strong one.
+- **Reject** roles clearly aimed at senior/established figures (full professor,
+  chair, director) well beyond someone finishing a first post-doc, and any role
+  that is not research/faculty (administration, adjunct, pure teaching load).
+
+So the rating combines: role type (permanent/TT > post-doc), field fit, and
+location. A tenure-track theory role in a good location is the ideal STRONG
+match; an ordinary post-doc is at most MEDIUM even with great field fit.
 
 ## When ambiguous
 - Lean toward excluding. A borderline posting is a reject, not a match.
