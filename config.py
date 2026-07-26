@@ -27,6 +27,6 @@ PREFILTER_EXCLUDE = [
 
 # --- Delivery ---------------------------------------------------------------
 # EMAIL_TO is overridden by the EMAIL_TO env var / GitHub secret if set.
-EMAIL_TO = "you@example.com"
-EMAIL_FROM = "jobscanner@example.com"   # a domain verified in Resend
+EMAIL_TO = "murraygoldberg@gmail.com"
+EMAIL_FROM = "jobscanner@jobs.murraygoldberg.com"   # a domain verified in Resend
 EMAIL_SUBJECT_PREFIX = "[Job Scanner]"
