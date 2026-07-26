@@ -35,22 +35,16 @@ rss:
     expect_nonzero: true
 
   # --- HigherEdJobs ---------------------------------------------------------
-  # catID=101 is the Computer Science category (was 68 = broad Higher Ed, which
-  # is mostly administration — wrong for this candidate). If 101 is wrong on
-  # the first run, check higheredjobs.com for the correct Computer Sciences
-  # category id and update it here.
+  # catID=102 is the Computer Science faculty category (verified). Shows CS
+  # faculty and postdoc listings. (Earlier guesses: 68 = broad Higher Ed /
+  # mostly admin; 101 = chemistry — both wrong for this candidate.)
   - name: higheredjobs_cs
-    feed_url: "https://www.higheredjobs.com/rss/categoryFeed.cfm?catID=101"
+    feed_url: "https://www.higheredjobs.com/rss/categoryFeed.cfm?catID=102"
     expect_nonzero: false
 
-  # --- Academic Positions: Theory of Computation ----------------------------
-  # International academic board with a Theory of Computation field. Verify the
-  # feed URL resolves on your first run (the site structure may differ); if it
-  # 404s, the health check stays quiet (expect_nonzero: false) and you can fix
-  # or drop it.
-  - name: academicpositions_toc
-    feed_url: "https://academicpositions.com/find-jobs/rss?field=theory-of-computation"
-    expect_nonzero: false
+  # (Removed: academicpositions_toc — the guessed feed URL returned HTML, not
+  #  a valid feed. If you want that board, find its real RSS URL first. The
+  #  cstheory-jobs source above already covers theory roles well.)
 
 indeed:
   # One scrape per search term. Keep the list short — each is a separate
@@ -66,4 +60,7 @@ indeed:
     results_wanted: 25
     hours_old: 48
     is_remote: null          # true / false / null
-    expect_nonzero: true
+    # Narrow academic search terms legitimately return zero on many days, and
+    # Indeed is a weak source for academic theory roles anyway (cstheory-jobs
+    # does the heavy lifting). So an empty result here is NOT a problem.
+    expect_nonzero: false
