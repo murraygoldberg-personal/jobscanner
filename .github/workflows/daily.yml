@@ -20,6 +20,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main          # check out the branch itself, not a detached commit
+          fetch-depth: 0     # full history so rebase/push works cleanly
 
       - uses: actions/setup-python@v5
         with:
@@ -51,7 +54,18 @@ jobs:
             echo "No changes to commit."
           else
             git commit -m "chore: update seen state and digest [skip ci]"
-            git push
+            # Push, and if the remote moved since checkout (e.g. a web edit
+            # right before this run), rebase our commit on top and retry. Now
+            # that checkout uses a real 'main' ref with full history, this is
+            # clean. Up to 3 attempts to cover a genuine race.
+            for i in 1 2 3; do
+              if git push; then
+                echo "pushed on attempt $i"; break
+              fi
+              echo "push rejected, rebasing and retrying ($i)"
+              git fetch origin main
+              git rebase origin/main || { git rebase --abort; exit 1; }
+            done
           fi
 
       # Final gate: if the pipeline flagged a broken source, end the job red so
