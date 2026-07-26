@@ -1,17 +1,10 @@
-"""Tunable settings. Edit this file (and criteria.md) rather than the code."""
+"""Tunable settings shared across the pipeline.
 
-# --- Indeed (JobSpy) search parameters --------------------------------------
-# One scrape runs per term. Keep the list short; each term is a separate
-# request and Indeed will rate-limit if you get greedy.
-INDEED_SEARCH_TERMS = [
-    "higher education administration",
-    "university dean",
-]
-INDEED_LOCATION = "Remote"      # city/state, or "Remote"
-INDEED_COUNTRY = "usa"          # JobSpy's country_indeed value
-INDEED_RESULTS_WANTED = 25      # per term, per run
-INDEED_HOURS_OLD = 48           # only postings newer than this
-INDEED_IS_REMOTE = None         # True / False / None (no filter)
+NOTE: source definitions (which boards, Indeed search terms) live in
+sources.yml, NOT here — so this file and all code stay identical across
+deploys. Candidate-specific matching lives in criteria.md. This file holds
+only cross-cutting knobs.
+"""
 
 # --- AI filter --------------------------------------------------------------
 # Haiku is the cheap workhorse. The prefilter kills obvious non-matches before
@@ -22,16 +15,18 @@ AI_BATCH_SIZE = 20              # postings judged per API call
 
 # Cheap deterministic prefilter. A posting must contain at least one INCLUDE
 # term (in title+description) AND none of the EXCLUDE terms to reach the model.
-# Leave PREFILTER_INCLUDE empty to send everything new to the AI.
+# Leave PREFILTER_INCLUDE empty to send everything new to the AI. For a tightly
+# scoped candidate you can add terms here to cut API cost, at the risk of
+# missing broadly-worded postings — leave empty until you've seen real results.
 PREFILTER_INCLUDE = [
-    # "dean", "provost", "director", "vice president",
+    # "theory", "complexity", "postdoc", "research",
 ]
 PREFILTER_EXCLUDE = [
     # "adjunct", "part-time", "graduate assistant",
 ]
 
 # --- Delivery ---------------------------------------------------------------
-EMAIL_TO = "you@example.com"        # overridden by env var EMAIL_TO if set
-EMAIL_FROM = "jobscanner@example.com"  # a domain verified in Resend
+# EMAIL_TO is overridden by the EMAIL_TO env var / GitHub secret if set.
+EMAIL_TO = "you@example.com"
+EMAIL_FROM = "jobscanner@example.com"   # a domain verified in Resend
 EMAIL_SUBJECT_PREFIX = "[Job Scanner]"
-SEND_EMPTY_DIGEST = False           # don't email when nothing new matched

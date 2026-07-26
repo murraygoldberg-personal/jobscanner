@@ -1,48 +1,56 @@
-"""Source registry.
+"""Source registry — builds adapters from sources.yml.
 
-This is the ONE place you edit to add, remove, or reconfigure a board.
-`get_sources()` returns the list of live adapters the pipeline will run.
-
-Adding a board:
-  - RSS feed available?  Add an RSSAdapter(...) line. No new file needed.
-  - Needs scraping?      Copy sources/indeed.py to a new file, adapt it,
-                         import it here, and add it to the list.
+The code here is deliberately generic and identical across deploys. All
+per-deploy configuration (which boards, which search terms) lives in
+sources.yml at the repo root. To retarget the scanner, edit sources.yml and
+criteria.md — never this file.
 """
 from __future__ import annotations
 
-import config
+import os
+import sys
+
+import yaml
+
 from sources.base import Adapter
 from sources.rss import RSSAdapter
 from sources.indeed import IndeedAdapter
 
+SOURCES_YML = os.path.join(os.path.dirname(os.path.dirname(__file__)), "sources.yml")
+
 
 def get_sources() -> list[Adapter]:
-    return [
-        # --- Chronicle of Higher Education (Madgex RSS) --------------------
-        # Base feed is countrycode=US. You can narrow server-side by adding a
-        # keyword, e.g. .../jobsrss/?countrycode=US&Keywords=dean — but it's
-        # usually better to pull broad and let the AI filter decide.
-        RSSAdapter(
-            name="chronicle",
-            feed_url="https://jobs.chronicle.com/jobsrss/?countrycode=US",
-        ),
+    if not os.path.exists(SOURCES_YML):
+        print(f"[sources] no sources.yml found at {SOURCES_YML}", file=sys.stderr)
+        return []
 
-        # --- HigherEdJobs (per-category RSS) ------------------------------
-        # catID=68 is the broad "Higher Education" category. Other useful IDs:
-        #   34 = Executive/Admin, 141 = Deans, 30 = Faculty.
-        # Add more lines to pull multiple categories.
-        RSSAdapter(
-            name="higheredjobs",
-            feed_url="https://www.higheredjobs.com/rss/categoryFeed.cfm?catID=68",
-        ),
+    with open(SOURCES_YML, encoding="utf-8") as f:
+        cfg = yaml.safe_load(f) or {}
 
-        # --- Indeed (JobSpy scrape) ---------------------------------------
-        IndeedAdapter(
-            search_terms=config.INDEED_SEARCH_TERMS,
-            location=config.INDEED_LOCATION,
-            country=config.INDEED_COUNTRY,
-            results_wanted=config.INDEED_RESULTS_WANTED,
-            hours_old=config.INDEED_HOURS_OLD,
-            is_remote=config.INDEED_IS_REMOTE,
-        ),
-    ]
+    adapters: list[Adapter] = []
+
+    for entry in cfg.get("rss", []) or []:
+        a = RSSAdapter(
+            name=entry["name"],
+            feed_url=entry["feed_url"],
+            default_company=entry.get("default_company", ""),
+        )
+        a.expect_nonzero = bool(entry.get("expect_nonzero", False))
+        adapters.append(a)
+
+    for entry in cfg.get("indeed", []) or []:
+        a = IndeedAdapter(
+            search_terms=entry.get("search_terms", []),
+            location=entry.get("location", ""),
+            country=entry.get("country", "usa"),
+            results_wanted=int(entry.get("results_wanted", 25)),
+            hours_old=int(entry.get("hours_old", 48)),
+            is_remote=entry.get("is_remote", None),
+        )
+        a.name = entry.get("name", "indeed")
+        a.expect_nonzero = bool(entry.get("expect_nonzero", False))
+        adapters.append(a)
+
+    print(f"[sources] loaded {len(adapters)} source(s) from sources.yml",
+          file=sys.stderr)
+    return adapters

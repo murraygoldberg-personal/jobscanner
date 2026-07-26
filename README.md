@@ -50,18 +50,34 @@ matching.
 
 ## Adding a board
 
-**Has an RSS feed?** Add a line to `get_sources()` in `sources/__init__.py`:
+Boards are configured in **sources.yml**, not in code. To add an RSS-backed
+board, add an entry under `rss:`:
 
-```python
-RSSAdapter(name="someboard", feed_url="https://.../feed.xml"),
+```yaml
+  - name: someboard
+    feed_url: "https://.../feed.xml"
+    expect_nonzero: false   # true = alert if it ever returns zero jobs
 ```
 
-Most boards that aren't Indeed/LinkedIn have one. Check for an "RSS" link on
-the board's search results page, or try appending `/rss` or `?format=rss`.
+Most boards that aren't Indeed/LinkedIn have a feed — check for an "RSS" link
+on the board's results page, or try appending `/feed/`, `/rss`, or
+`?format=rss`. WordPress sites are almost always `/feed/`.
 
-**No feed, needs scraping?** Copy `sources/indeed.py`, adapt the fetch logic,
-import it in `sources/__init__.py`, and add it to the list. Keep it behind the
-`_safe()` wrapper so a break there can't take down the feed-based sources.
+Set `expect_nonzero: true` only for high-volume boards that should always have
+jobs (so a zero means it broke). Leave it `false` for niche/low-volume feeds
+that can legitimately be empty.
+
+Indeed (scraped via JobSpy) is configured under `indeed:` with search terms
+and location. Adding a *non-RSS, non-Indeed* board is the only case that needs
+code: copy `sources/indeed.py` to a new adapter and register it in
+`sources/__init__.py` — but this is rare.
+
+## Running two deploys from one codebase
+
+The code is identical across deploys. Everything person-specific is in two
+files: **sources.yml** (which boards) and **criteria.md** (the candidate). To
+run a second scanner, use a separate repo with its own `seen.json`, schedule,
+and secrets, and change only those two files. Don't edit code per-deploy.
 
 ## Breakage alerts (automatic)
 
