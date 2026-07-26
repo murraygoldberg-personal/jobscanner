@@ -1,33 +1,31 @@
-
-Deliver · PY
 """Delivery. Emails matches via Resend; always writes a dated markdown file.
- 
+
 The markdown file is committed by the Action, giving you a free searchable
 archive even if email delivery ever fails. Email is the daily nudge.
 """
 from __future__ import annotations
- 
+
 import datetime as dt
 import os
 import sys
 import urllib.request
 import urllib.error
 import json
- 
+
 import config
 from models import Job
- 
+
 DIGEST_DIR = os.path.join(os.path.dirname(__file__), "digests")
- 
- 
+
+
 def _strength_badge(s: str) -> str:
     return {
         "strong": "🟢 Strong",
         "medium": "🟡 Medium",
         "weak": "🟠 Weak",
     }.get(s, "⚪ Match")
- 
- 
+
+
 # The four scored dimensions, each with a label emoji. Order = display order.
 _DIMENSIONS = [
     ("field", "🔬"),      # field / research-area fit
@@ -35,20 +33,20 @@ _DIMENSIONS = [
     ("job_type", "💼"),   # role type (permanent/TT vs post-doc)
     ("seniority", "🎓"),  # career-stage fit
 ]
- 
- 
+
+
 def _dot(rating: str) -> str:
     return {"strong": "🟢", "medium": "🟡", "weak": "🔴"}.get(rating, "⚪")
- 
- 
+
+
 def _scorecard_text(dims: dict) -> str:
     """Compact one-line scorecard like '🔬🟢 📍🟡 💼🟢 🎓🟢'. Empty if no dims."""
     if not dims:
         return ""
     return "  ".join(f"{emoji}{_dot(dims.get(key, ''))}"
                      for key, emoji in _DIMENSIONS)
- 
- 
+
+
 def _render_match_entries(matches: list[Job]) -> str:
     """Just the match blocks — no date header. Used for both fresh writes and
     same-day appends."""
@@ -68,19 +66,19 @@ def _render_match_entries(matches: list[Job]) -> str:
             lines.append(f"> {j.match_reason}")
         lines.append("")
     return "\n".join(lines)
- 
- 
+
+
 def _render_markdown(matches: list[Job]) -> str:
     today = dt.date.today().isoformat()
     if not matches:
         return f"# Job matches — {today}\n\n_No new matching jobs today._"
     return f"# Job matches — {today}\n\n" + _render_match_entries(matches)
- 
- 
+
+
 def _render_html(matches: list[Job], problems: list[str] | None = None) -> str:
     problems = problems or []
     parts = []
- 
+
     # Problems banner first — most important thing to see if a scrape broke.
     if problems:
         items = "".join(f"<li>{p}</li>" for p in problems)
@@ -93,11 +91,11 @@ def _render_html(matches: list[Job], problems: list[str] | None = None) -> str:
             "A feed URL may have changed, or the Indeed scraper may need "
             "updating (pip install -U python-jobspy).</div></div>"
         )
- 
+
     if not matches:
         parts.append('<h2 style="margin:0">No new matching jobs today</h2>')
         return "".join(parts)
- 
+
     colors = {"strong": "#16a34a", "medium": "#ca8a04", "weak": "#ea580c"}
     rows = []
     for j in matches:
@@ -136,8 +134,8 @@ def _render_html(matches: list[Job], problems: list[str] | None = None) -> str:
         f'<ul style="list-style:none;padding:0">{"".join(rows)}</ul>'
     )
     return "".join(parts)
- 
- 
+
+
 def _write_digest_file(matches: list[Job]) -> str:
     """Write today's digest. If a digest for today already exists (a second run
     on the same day), APPEND this run's matches under a timestamped separator
@@ -146,7 +144,7 @@ def _write_digest_file(matches: list[Job]) -> str:
     os.makedirs(DIGEST_DIR, exist_ok=True)
     path = os.path.join(DIGEST_DIR, f"{dt.date.today().isoformat()}.md")
     now = dt.datetime.now().strftime("%H:%M")
- 
+
     if os.path.exists(path):
         # Append only the new match entries, under a separator noting the run.
         entries = _render_match_entries(matches)
@@ -158,8 +156,8 @@ def _write_digest_file(matches: list[Job]) -> str:
         with open(path, "w", encoding="utf-8") as f:
             f.write(_render_markdown(matches))
     return path
- 
- 
+
+
 def _send_email(matches: list[Job], problems: list[str] | None = None) -> None:
     problems = problems or []
     api_key = os.environ.get("RESEND_API_KEY")
@@ -167,7 +165,7 @@ def _send_email(matches: list[Job], problems: list[str] | None = None) -> None:
     if not api_key:
         print("[deliver] no RESEND_API_KEY set; skipping email", file=sys.stderr)
         return
- 
+
     today = dt.date.today().isoformat()
     if matches:
         n = len(matches)
@@ -177,7 +175,7 @@ def _send_email(matches: list[Job], problems: list[str] | None = None) -> None:
         subject = f"{config.EMAIL_SUBJECT_PREFIX} No new jobs — {today}"
     if problems:
         subject = f"⚠️ {subject} (source problem)"
- 
+
     body = {
         "from": config.EMAIL_FROM,
         "to": [to_addr],
@@ -208,11 +206,11 @@ def _send_email(matches: list[Job], problems: list[str] | None = None) -> None:
               f"to={to_addr!r} — Resend said: {detail}", file=sys.stderr)
     except Exception as e:  # noqa: BLE001
         print(f"[deliver] email failed: {e}", file=sys.stderr)
- 
- 
+
+
 def deliver(matches: list[Job], problems: list[str] | None = None) -> None:
     problems = problems or []
- 
+
     # Digest file: written only when there are matches (an empty run never
     # overwrites a populated same-day digest). Appends if today's file exists.
     if matches:
@@ -221,9 +219,7 @@ def deliver(matches: list[Job], problems: list[str] | None = None) -> None:
     else:
         print("[deliver] no matches; leaving any existing digest intact",
               file=sys.stderr)
- 
+
     # Email: ALWAYS sent — including on empty days (so you know it ran) and
     # whenever there are source problems (so a silent scrape break can't hide).
     _send_email(matches, problems)
- 
-
