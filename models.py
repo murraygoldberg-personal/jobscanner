@@ -26,6 +26,10 @@ class Job:
     description: str = ""
     # Filled in automatically by __post_init__ — do not pass manually.
     id: str = field(default="", init=False)
+    # Populated by the AI filter for matched jobs: a strength label
+    # ("strong" / "medium" / "weak") and a one-line reason.
+    match_strength: str = field(default="", init=False)
+    match_reason: str = field(default="", init=False)
 
     def __post_init__(self) -> None:
         self.title = _clean(self.title)

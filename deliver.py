@@ -17,35 +17,59 @@ from models import Job
 DIGEST_DIR = os.path.join(os.path.dirname(__file__), "digests")
 
 
+def _strength_badge(s: str) -> str:
+    return {
+        "strong": "🟢 Strong",
+        "medium": "🟡 Medium",
+        "weak": "🟠 Weak",
+    }.get(s, "⚪ Match")
+
+
 def _render_markdown(matches: list[Job]) -> str:
     today = dt.date.today().isoformat()
     lines = [f"# Job matches — {today}", ""]
     if not matches:
         lines.append("_No new matching jobs today._")
         return "\n".join(lines)
-    by_source: dict[str, list[Job]] = {}
+    # matches arrive already sorted strongest-first from the filter.
     for j in matches:
-        by_source.setdefault(j.source, []).append(j)
-    for source, jobs in sorted(by_source.items()):
-        lines.append(f"## {source} ({len(jobs)})")
-        lines.append("")
-        for j in jobs:
-            loc = f" — {j.location}" if j.location else ""
-            comp = f" · {j.company}" if j.company else ""
-            lines.append(f"- **[{j.title}]({j.url})**{comp}{loc}")
+        loc = f" — {j.location}" if j.location else ""
+        comp = f" · {j.company}" if j.company else ""
+        lines.append(f"### {_strength_badge(j.match_strength)} — "
+                     f"[{j.title}]({j.url})")
+        lines.append(f"{j.source}{comp}{loc}")
+        if j.match_reason:
+            lines.append("")
+            lines.append(f"> {j.match_reason}")
         lines.append("")
     return "\n".join(lines)
 
 
 def _render_html(matches: list[Job]) -> str:
+    colors = {"strong": "#16a34a", "medium": "#ca8a04", "weak": "#ea580c"}
     rows = []
     for j in matches:
-        meta = " · ".join(x for x in [j.company, j.location] if x)
-        rows.append(
-            f'<li><a href="{j.url}"><strong>{j.title}</strong></a>'
-            f'<br><small>{j.source} · {meta}</small></li>'
+        meta = " · ".join(x for x in [j.source, j.company, j.location] if x)
+        color = colors.get(j.match_strength, "#6b7280")
+        badge = (
+            f'<span style="color:{color};font-weight:600;text-transform:'
+            f'capitalize">{j.match_strength or "match"}</span>'
         )
-    return f"<h2>{len(matches)} new matching jobs</h2><ul>{''.join(rows)}</ul>"
+        reason = (
+            f'<br><span style="color:#374151">{j.match_reason}</span>'
+            if j.match_reason else ""
+        )
+        rows.append(
+            f'<li style="margin-bottom:14px">'
+            f'{badge} — <a href="{j.url}"><strong>{j.title}</strong></a>'
+            f'<br><small style="color:#6b7280">{meta}</small>'
+            f'{reason}</li>'
+        )
+    return (
+        f"<h2>{len(matches)} new matching "
+        f"job{'s' if len(matches) != 1 else ''}</h2>"
+        f'<ul style="list-style:none;padding:0">{"".join(rows)}</ul>'
+    )
 
 
 def _write_digest_file(md: str) -> str:
