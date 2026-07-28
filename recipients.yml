@@ -1,0 +1,95 @@
+# ============================================================================
+# recipients.yml — master config for the family job scanner.
+#
+# Each recipient has their own sources, criteria file, and scorecard dimensions.
+# Each run scans every recipient's sources, filters against THEIR criteria,
+# scores on THEIR dimensions, then sends ONE combined email (a section per
+# person) to everyone in all_recipients. Everyone sees every section.
+#
+# To add a person: add an entry under `recipients:` (name, key, criteria_file,
+# dimensions, and rss:/indeed: sources) and add their email to all_recipients.
+# ============================================================================
+
+all_recipients:
+  - "murraygoldberg@gmail.com"          # you (oversight)
+  - "murray@skillgrader.com"             # TODO real address — theory
+
+
+recipients:
+
+  # ==========================================================================
+  # DAUGHTER 1 — Theoretical CS / metacomplexity, academic track
+  # ==========================================================================
+  - name: "Theory (Daughter 1)"
+    key: "theory"
+    criteria_file: "criteria/theory.md"
+    prefilter_include: []
+    prefilter_exclude: []
+    # Scorecard axes for her: field / location / job-type / seniority.
+    dimensions:
+      - {key: field,     label: field,     emoji: "🔬", desc: "field / research-area fit"}
+      - {key: location,  label: location,  emoji: "📍", desc: "location fit vs the preference list"}
+      - {key: job_type,  label: job-type,  emoji: "💼", desc: "role type (permanent/tenure-track scores higher than post-doc/fixed-term)"}
+      - {key: seniority, label: seniority, emoji: "🎓", desc: "career-stage fit for someone finishing a first post-doc"}
+    rss:
+      - {name: cstheory,             feed_url: "https://cstheory-jobs.org/feed/", expect_nonzero: false}
+      - {name: chronicle,            feed_url: "https://jobs.chronicle.com/jobsrss/?countrycode=US", expect_nonzero: true}
+      - {name: higheredjobs_cs,      feed_url: "https://www.higheredjobs.com/rss/categoryFeed.cfm?catID=102", expect_nonzero: false}
+      - {name: academickeys_sciences, feed_url: "https://sciences.academickeys.com/rss", expect_nonzero: false}
+    indeed:
+      - name: indeed
+        search_terms:
+          - "postdoc theoretical computer science"
+          - "complexity theory researcher"
+        location: "Remote"
+        country: "usa"
+        results_wanted: 25
+        hours_old: 48
+        is_remote: null
+        expect_nonzero: false
+
+  # ==========================================================================
+  # DAUGHTER 2 — Immunology PhD, NON-academic / transferable-role search
+  # Casting a wide net across industry, health, policy, comms, etc. The AI
+  # filter does the heavy sorting (hard-excludes animal/bench work; scores on
+  # people / intellect / education-use / prestige). Indeed role-title searches
+  # do most of the work here since her opportunities aren't on academic boards.
+  # ==========================================================================
+  - name: "Immunology (Daughter 2)"
+    key: "immunology"
+    criteria_file: "criteria/immunology.md"
+    prefilter_include: []
+    prefilter_exclude: []
+    # Scorecard axes for her: people / intellect / education-use / prestige.
+    # (Location is enforced in criteria + reflected in the overall strength;
+    #  we spend the four dots on what differentiates HER matches.)
+    dimensions:
+      - {key: people,    label: people,    emoji: "👥", desc: "involves working with people (colleagues, clients, patients, stakeholders)"}
+      - {key: intellect, label: intellect, emoji: "🧠", desc: "requires genuine intellectual depth and rigor"}
+      - {key: education, label: uses-PhD,  emoji: "🎓", desc: "her immunology / life-sciences PhD is directly useful or clearly valued"}
+      - {key: prestige,  label: prestige,  emoji: "⭐", desc: "carries real responsibility, standing, or leadership"}
+    rss:
+      # Broad life-sciences INDUSTRY board (news feeds confirmed; job feed may
+      # differ — verify on first run, health check handles it if it errors).
+      - {name: biospace,   feed_url: "https://www.biospace.com/jobs/rss/", expect_nonzero: false}
+      # Science Careers (AAAS) — Madgex, broad science incl. non-bench roles.
+      - {name: sciencecareers, feed_url: "https://jobs.sciencecareers.org/jobsrss/?countrycode=US", expect_nonzero: false}
+      # AcademicKeys Sciences — proven working; catches lab-adjacent roles too.
+      - {name: academickeys_sciences, feed_url: "https://sciences.academickeys.com/rss", expect_nonzero: false}
+    indeed:
+      # The real workhorse for her: role-title searches for transferable,
+      # people-facing, PhD-valued roles that are NOT bench/animal science.
+      - name: indeed
+        search_terms:
+          - "medical science liaison immunology"
+          - "medical affairs immunology"
+          - "scientific communications PhD life sciences"
+          - "clinical research manager immunology"
+          - "science policy advisor PhD"
+          - "public health scientist PhD"
+        location: "Canada"
+        country: "canada"
+        results_wanted: 20
+        hours_old: 72
+        is_remote: null
+        expect_nonzero: false

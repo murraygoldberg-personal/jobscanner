@@ -1,77 +1,106 @@
-"""Entry point. Run: python pipeline.py
+"""Entry point for the family job scanner. Run: python pipeline.py
 
-Flow:
-  1. fetch   — run every adapter, collect postings + note any problems
-  2. dedup   — drop anything already in seen.json (and dupes within this run)
-  3. filter  — prefilter + AI judgment against criteria.md
-  4. deliver — email (always) + write digest (only when there are matches)
-  5. persist — mark everything seen so it won't reappear tomorrow
+Reads recipients.yml. For EACH recipient: fetch their sources, dedup against
+their own state, filter against their criteria, rate matches. Then send ONE
+combined tabbed email (a section per recipient) to everyone in all_recipients.
 
-Note step 5 marks ALL new postings seen, not just matches. Otherwise a
-posting the AI rejected today would be re-judged (and re-paid-for) every day
-it stays live.
-
-A "problem" is a source that errored, or a source flagged expect_nonzero in
-sources.yml that returned zero. Problems are reported in the daily email AND
-cause the run to exit non-zero (red Action → GitHub failure email).
+Per-recipient isolation: each person has their own seen/<key>.json, so a
+posting shown to one never suppresses it for another. A source problem for one
+recipient is reported in their section and fails the run, without affecting
+anyone else's results.
 """
 from __future__ import annotations
 
+import os
 import sys
+
+import yaml
 
 import state
 from ai_filter import filter_jobs
-from deliver import deliver
-from sources import get_sources
+from deliver import deliver_all
+from sources import build_sources
+
+RECIPIENTS_YML = os.path.join(os.path.dirname(__file__), "recipients.yml")
 
 
-def run() -> int:
-    # 1. fetch — collect jobs and detect per-source problems
+def _process_recipient(rec: dict) -> tuple[dict, bool]:
+    """Run the pipeline for one recipient. Returns (result, had_problem)."""
+    name = rec["name"]
+    key = rec["key"]
+    print(f"\n[pipeline] === {name} ({key}) ===", file=sys.stderr)
+
+    # 1. fetch this recipient's sources
+    adapters = build_sources(rec)
     all_jobs = []
     problems: list[str] = []
-    for adapter in get_sources():
+    for adapter in adapters:
         jobs = adapter.fetch()
         all_jobs.extend(jobs)
         if adapter.last_error:
             problems.append(f"{adapter.name}: error — {adapter.last_error}")
         elif adapter.expect_nonzero and len(jobs) == 0:
-            problems.append(f"{adapter.name}: expected jobs but got zero "
-                            "(feed URL changed, or scraper needs updating)")
-    print(f"[pipeline] total fetched: {len(all_jobs)}", file=sys.stderr)
-    if problems:
-        for p in problems:
-            print(f"[pipeline] PROBLEM: {p}", file=sys.stderr)
+            problems.append(f"{adapter.name}: expected jobs but got zero")
+    print(f"[pipeline] {key}: fetched {len(all_jobs)}", file=sys.stderr)
 
-    # 2. dedup — against history and within this run
-    seen = state.load()
-    new_jobs = []
-    seen_this_run: set[str] = set()
+    # 2. dedup against THIS recipient's state
+    seen = state.load(key)
+    new_jobs, seen_this_run = [], set()
     for j in all_jobs:
         if j.id in seen or j.id in seen_this_run:
             continue
         seen_this_run.add(j.id)
         new_jobs.append(j)
-    print(f"[pipeline] new since last run: {len(new_jobs)}", file=sys.stderr)
+    print(f"[pipeline] {key}: new since last run: {len(new_jobs)}", file=sys.stderr)
 
-    # 3. filter (only if there's anything new)
-    matches = filter_jobs(new_jobs) if new_jobs else []
+    # 3. filter against THIS recipient's criteria + dimension spec
+    dimensions = rec.get("dimensions") or []
+    matches = []
+    if new_jobs:
+        matches = filter_jobs(
+            new_jobs,
+            criteria_path=rec["criteria_file"],
+            dimensions=dimensions,
+            prefilter_include=rec.get("prefilter_include", []),
+            prefilter_exclude=rec.get("prefilter_exclude", []),
+        )
 
-    # 4. deliver — email always sends (even on an empty day) and reports any
-    #    source problems. Digest file is written only when there are matches.
-    deliver(matches, problems)
-
-    # 5. persist — mark ALL new postings seen, matched or not
+    # 4. persist state (all new postings, matched or not)
     if new_jobs:
         state.mark_seen(seen, (j.id for j in new_jobs))
-        state.save(seen)
+        state.save(key, seen)
 
-    print(f"[pipeline] done. {len(matches)} match(es); "
-          f"{len(problems)} problem(s).", file=sys.stderr)
+    result = {"name": name, "key": key, "matches": matches,
+              "problems": problems, "dimensions": dimensions}
+    return result, bool(problems)
 
-    # Non-zero exit on any problem → red Action → GitHub failure email, on top
-    # of the in-email report. Delivery and state-save happen first so an alert
-    # never costs real matches.
-    return 1 if problems else 0
+
+def run() -> int:
+    with open(RECIPIENTS_YML, encoding="utf-8") as f:
+        cfg = yaml.safe_load(f) or {}
+
+    recipients = cfg.get("recipients", []) or []
+    all_recipients = cfg.get("all_recipients", []) or []
+    if not recipients:
+        print("[pipeline] no recipients configured", file=sys.stderr)
+        return 0
+
+    results = []
+    any_problem = False
+    for rec in recipients:
+        result, had_problem = _process_recipient(rec)
+        results.append(result)
+        any_problem = any_problem or had_problem
+
+    # One combined email to everyone.
+    deliver_all(results, all_recipients)
+
+    total = sum(len(r["matches"]) for r in results)
+    print(f"\n[pipeline] done. {total} total match(es) across "
+          f"{len(results)} recipient(s); problems={any_problem}", file=sys.stderr)
+
+    # Non-zero exit if any recipient had a source problem → red Action + email.
+    return 1 if any_problem else 0
 
 
 if __name__ == "__main__":

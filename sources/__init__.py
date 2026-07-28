@@ -1,32 +1,20 @@
-"""Source registry — builds adapters from sources.yml.
+"""Source registry — builds adapters from a per-recipient config dict.
 
-The code here is deliberately generic and identical across deploys. All
-per-deploy configuration (which boards, which search terms) lives in
-sources.yml at the repo root. To retarget the scanner, edit sources.yml and
-criteria.md — never this file.
+The pipeline passes in one recipient's source config (the `rss:` and `indeed:`
+lists from recipients.yml). This function turns that into adapter objects. The
+code is generic and identical across all recipients; only the config differs.
 """
 from __future__ import annotations
 
-import os
 import sys
-
-import yaml
 
 from sources.base import Adapter
 from sources.rss import RSSAdapter
 from sources.indeed import IndeedAdapter
 
-SOURCES_YML = os.path.join(os.path.dirname(os.path.dirname(__file__)), "sources.yml")
 
-
-def get_sources() -> list[Adapter]:
-    if not os.path.exists(SOURCES_YML):
-        print(f"[sources] no sources.yml found at {SOURCES_YML}", file=sys.stderr)
-        return []
-
-    with open(SOURCES_YML, encoding="utf-8") as f:
-        cfg = yaml.safe_load(f) or {}
-
+def build_sources(cfg: dict) -> list[Adapter]:
+    """cfg is one recipient's dict with optional 'rss' and 'indeed' lists."""
     adapters: list[Adapter] = []
 
     for entry in cfg.get("rss", []) or []:
@@ -51,6 +39,5 @@ def get_sources() -> list[Adapter]:
         a.expect_nonzero = bool(entry.get("expect_nonzero", False))
         adapters.append(a)
 
-    print(f"[sources] loaded {len(adapters)} source(s) from sources.yml",
-          file=sys.stderr)
+    print(f"[sources] built {len(adapters)} source(s)", file=sys.stderr)
     return adapters

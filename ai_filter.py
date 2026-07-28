@@ -18,12 +18,12 @@ import sys
 import config
 from models import Job
 
-CRITERIA_PATH = os.path.join(os.path.dirname(__file__), "criteria.md")
+BASE_DIR = os.path.dirname(__file__)
 
 
-def _prefilter(jobs: list[Job]) -> list[Job]:
-    inc = [t.lower() for t in config.PREFILTER_INCLUDE]
-    exc = [t.lower() for t in config.PREFILTER_EXCLUDE]
+def _prefilter(jobs: list[Job], include: list[str], exclude: list[str]) -> list[Job]:
+    inc = [t.lower() for t in (include or [])]
+    exc = [t.lower() for t in (exclude or [])]
     out = []
     for j in jobs:
         hay = f"{j.title} {j.description}".lower()
@@ -36,35 +36,44 @@ def _prefilter(jobs: list[Job]) -> list[Job]:
     return out
 
 
-def _load_criteria() -> str:
-    with open(CRITERIA_PATH, encoding="utf-8") as f:
+def _load_criteria(criteria_path: str) -> str:
+    path = criteria_path
+    if not os.path.isabs(path):
+        path = os.path.join(BASE_DIR, path)
+    with open(path, encoding="utf-8") as f:
         return f.read()
 
 
-def _judge_batch(client, criteria: str, batch: list[Job]) -> dict[str, dict]:
-    """Return {id: {"strength": ..., "reason": ...}} for matches in this batch."""
+def _judge_batch(client, criteria: str, batch: list[Job],
+                 dimensions: list[dict]) -> dict[str, dict]:
+    """Return {id: {"strength","reason","dimensions":{...}}} for matches.
+
+    `dimensions` is the per-recipient list of {key,label,emoji,desc} the model
+    should rate, so each recipient can have their own scorecard axes.
+    """
     payload = [j.for_filter(config.AI_MAX_DESC_CHARS) for j in batch]
+
+    dim_lines = "".join(
+        f'  "{d["key"]}": {d.get("desc", d["key"])} — "strong"/"medium"/"weak"\n'
+        for d in dimensions
+    )
+    example_dims = ",".join(f'"{d["key"]}":"strong"' for d in dimensions)
     system = (
         "You are a job-matching filter for a specific candidate. Given the "
         "candidate criteria and a list of job postings as JSON, identify ONLY "
-        "the postings that genuinely match. For each match, give an overall "
-        "strength, a one-sentence reason, and a rating on four separate "
-        "dimensions.\n\n"
+        "the postings that genuinely match. Apply any HARD EXCLUSION stated in "
+        "the criteria FIRST — such postings never match. For each match, give "
+        "an overall strength, a one-sentence reason, and a rating on each "
+        "listed dimension.\n\n"
         "Respond with ONLY a JSON array — no prose, no markdown, no code "
         "fences. Each element is an object with exactly these keys:\n"
         '  "id": the posting id, as a double-quoted string\n'
         '  "strength": overall fit — one of "strong", "medium", "weak"\n'
         '  "reason": one sentence explaining the match\n'
-        '  "field": field/research-area fit — "strong"/"medium"/"weak"\n'
-        '  "location": location fit vs the preference list — "strong"/"medium"/"weak"\n'
-        '  "job_type": role-type fit (permanent/tenure-track scores higher than '
-        'post-doc/fixed-term) — "strong"/"medium"/"weak"\n'
-        '  "seniority": career-stage fit for someone finishing a first post-doc '
-        '— "strong"/"medium"/"weak"\n'
+        f"{dim_lines}"
         'Example: [{"id":"9dad6b2335569b6a","strength":"strong",'
-        '"reason":"Tenure-track complexity role at UBC — top field and location.",'
-        '"field":"strong","location":"strong","job_type":"strong",'
-        '"seniority":"strong"}]'
+        '"reason":"Strong fit for the candidate and a top-preference location.",'
+        f"{example_dims}}}]"
         "\nIf nothing matches, return []."
     )
     user = (
@@ -87,6 +96,7 @@ def _judge_batch(client, criteria: str, batch: list[Job]) -> dict[str, dict]:
     # Preferred path: valid JSON array of verdict objects.
     try:
         parsed = json.loads(text)
+        dim_keys = [d["key"] for d in dimensions]
         for item in parsed:
             jid = str(item.get("id", ""))
             if jid in batch_ids:
@@ -95,12 +105,7 @@ def _judge_batch(client, criteria: str, batch: list[Job]) -> dict[str, dict]:
                 verdicts[jid] = {
                     "strength": _norm("strength"),
                     "reason": str(item.get("reason", "")).strip(),
-                    "dimensions": {
-                        "field": _norm("field"),
-                        "location": _norm("location"),
-                        "job_type": _norm("job_type"),
-                        "seniority": _norm("seniority"),
-                    },
+                    "dimensions": {k: _norm(k) for k in dim_keys},
                 }
         return verdicts
     except (json.JSONDecodeError, TypeError, AttributeError):
@@ -123,10 +128,13 @@ def _judge_batch(client, criteria: str, batch: list[Job]) -> dict[str, dict]:
     return verdicts
 
 
-def filter_jobs(jobs: list[Job]) -> list[Job]:
-    """Return matching jobs, each annotated with match_strength and match_reason,
-    sorted strongest first."""
-    candidates = _prefilter(jobs)
+def filter_jobs(jobs: list[Job], criteria_path: str, dimensions: list[dict],
+                prefilter_include: list[str] | None = None,
+                prefilter_exclude: list[str] | None = None) -> list[Job]:
+    """Return matching jobs, each annotated with strength/reason/dimensions,
+    sorted strongest first. Judged against the given recipient's criteria and
+    scored on that recipient's dimension spec."""
+    candidates = _prefilter(jobs, prefilter_include or [], prefilter_exclude or [])
     if not candidates:
         return []
 
@@ -134,12 +142,12 @@ def filter_jobs(jobs: list[Job]) -> list[Job]:
     from anthropic import Anthropic
 
     client = Anthropic()  # reads ANTHROPIC_API_KEY from env
-    criteria = _load_criteria()
+    criteria = _load_criteria(criteria_path)
 
     verdicts: dict[str, dict] = {}
     for i in range(0, len(candidates), config.AI_BATCH_SIZE):
         batch = candidates[i : i + config.AI_BATCH_SIZE]
-        verdicts.update(_judge_batch(client, criteria, batch))
+        verdicts.update(_judge_batch(client, criteria, batch, dimensions))
 
     matches = []
     for j in candidates:

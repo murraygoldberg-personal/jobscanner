@@ -1,11 +1,8 @@
-"""Dedup state: which job IDs we've already seen.
+"""Per-recipient dedup state.
 
-Stored as a JSON map of id -> ISO date first seen, committed back to the repo
-by the GitHub Action each run. "New since last time" is just: id not in here.
-
-Old entries are pruned so the file doesn't grow forever. Pruning is safe
-because a posting older than the window is no longer live on the boards, so it
-won't reappear to be re-flagged as new.
+Each recipient has their own seen-file at seen/<key>.json, so a posting shown
+to one person never suppresses it for another (they have different criteria and
+may match different things). Committed back to the repo each run.
 """
 from __future__ import annotations
 
@@ -13,27 +10,30 @@ import datetime as dt
 import json
 import os
 
-STATE_PATH = os.path.join(os.path.dirname(__file__), "seen.json")
+STATE_DIR = os.path.join(os.path.dirname(__file__), "seen")
 PRUNE_AFTER_DAYS = 60
 
 
-def load() -> dict[str, str]:
-    if not os.path.exists(STATE_PATH):
+def _path(key: str) -> str:
+    return os.path.join(STATE_DIR, f"{key}.json")
+
+
+def load(key: str) -> dict[str, str]:
+    p = _path(key)
+    if not os.path.exists(p):
         return {}
-    with open(STATE_PATH, encoding="utf-8") as f:
+    with open(p, encoding="utf-8") as f:
         try:
             return json.load(f)
         except json.JSONDecodeError:
             return {}
 
 
-def save(seen: dict[str, str]) -> None:
+def save(key: str, seen: dict[str, str]) -> None:
+    os.makedirs(STATE_DIR, exist_ok=True)
     cutoff = dt.date.today() - dt.timedelta(days=PRUNE_AFTER_DAYS)
-    pruned = {
-        jid: d for jid, d in seen.items()
-        if _parse(d) >= cutoff
-    }
-    with open(STATE_PATH, "w", encoding="utf-8") as f:
+    pruned = {jid: d for jid, d in seen.items() if _parse(d) >= cutoff}
+    with open(_path(key), "w", encoding="utf-8") as f:
         json.dump(pruned, f, indent=0, sort_keys=True)
 
 
