@@ -12,8 +12,8 @@
 
 all_recipients:
   - "murraygoldberg@gmail.com"          # you (oversight)
-  - "daughter1@example.com"             # TODO real address — theory
-  - "daughter2@example.com"             # TODO real address — immunology
+  - "murray@skillgrader.com"             # TODO real address — theory
+
 
 recipients:
 
