@@ -49,7 +49,7 @@ jobs:
         run: |
           git config user.name  "job-scanner-bot"
           git config user.email "job-scanner-bot@users.noreply.github.com"
-          git add seen.json digests/ || true
+          git add seen/ digests/ || true
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else
