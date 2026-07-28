@@ -22,6 +22,30 @@ NOT an academic-track search — read the profile carefully, because the usual
   If the posting's core day-to-day is bench/animal science, it does NOT match,
   full stop.
 
+## Career stage — IMPORTANT (she is a NEW PhD)
+She is finishing / recently finished her PhD and has NO substantial prior
+industry or leadership experience. Match roles a strong new PhD could
+realistically step into:
+- GOOD: entry-to-early-career industry and professional roles — e.g. Medical
+  Science Liaison, medical affairs associate/manager, scientific
+  communications, associate scientist, research/program coordinator, policy
+  analyst, entry consultant, clinical research associate. First-industry-job
+  roles are the target.
+- REJECT: roles that clearly require years of prior industry experience or
+  established seniority — e.g. Director, Division/Department Head, VP, Country
+  or Therapeutic-Area Leader, Principal, Chief/Head, or postings asking for
+  more than ~2-3 years of industry experience. These are not open to a fresh
+  PhD, however good the fit otherwise.
+When seniority is ambiguous, include only if a new PhD could plausibly be
+considered.
+
+## Bonus — marine biology / marine ecosystem
+Her undergraduate background is marine biology and she loves marine ecosystems.
+A role involving marine biology, ocean/aquatic science, marine ecology,
+fisheries, aquaculture, or ocean health is a STRONG PLUS — boost such matches
+and mention it in the reason. This is a bonus, not a requirement: most matches
+won't involve it, and that's fine.
+
 ## What makes a GOOD match (drives the score) — the more of these, the better
 1. PEOPLE: involves working with people — colleagues, customers, clients,
    patients, physicians, stakeholders. Collaborative / outward-facing roles

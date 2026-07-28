@@ -12,8 +12,8 @@
 
 all_recipients:
   - "murraygoldberg@gmail.com"          # you (oversight)
-  - "murray@skillgrader.com"             # TODO real address — theory
-
+  - "daughter1@example.com"             # TODO real address — theory
+  - "daughter2@example.com"             # TODO real address — immunology
 
 recipients:
 
@@ -69,13 +69,13 @@ recipients:
       - {key: education, label: uses-PhD,  emoji: "🎓", desc: "her immunology / life-sciences PhD is directly useful or clearly valued"}
       - {key: prestige,  label: prestige,  emoji: "⭐", desc: "carries real responsibility, standing, or leadership"}
     rss:
-      # Broad life-sciences INDUSTRY board (news feeds confirmed; job feed may
-      # differ — verify on first run, health check handles it if it errors).
-      - {name: biospace,   feed_url: "https://www.biospace.com/jobs/rss/", expect_nonzero: false}
       # Science Careers (AAAS) — Madgex, broad science incl. non-bench roles.
       - {name: sciencecareers, feed_url: "https://jobs.sciencecareers.org/jobsrss/?countrycode=US", expect_nonzero: false}
       # AcademicKeys Sciences — proven working; catches lab-adjacent roles too.
       - {name: academickeys_sciences, feed_url: "https://sciences.academickeys.com/rss", expect_nonzero: false}
+      # (Removed: biospace — guessed job feed URL returned malformed XML. Its
+      #  job board may not expose a public RSS feed. Science Careers + Indeed
+      #  already cover her industry/transferable space well.)
     indeed:
       # The real workhorse for her: role-title searches for transferable,
       # people-facing, PhD-valued roles that are NOT bench/animal science.
