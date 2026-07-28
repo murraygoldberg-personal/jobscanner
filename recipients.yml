@@ -12,7 +12,9 @@
 
 all_recipients:
   - "murraygoldberg@gmail.com"          # you (oversight)
-  - "murray@skillgrader.com"             # TODO real address — theory
+  - "ann@anngoldberg.com"   
+  - "goldhalley@gmail.com"   
+  - "erin.goldberg35@gmail.com"
 
 
 recipients:
@@ -20,7 +22,7 @@ recipients:
   # ==========================================================================
   # DAUGHTER 1 — Theoretical CS / metacomplexity, academic track
   # ==========================================================================
-  - name: "Theory (Daughter 1)"
+  - name: "Theory (Halley)"
     key: "theory"
     criteria_file: "criteria/theory.md"
     prefilter_include: []
@@ -55,7 +57,7 @@ recipients:
   # people / intellect / education-use / prestige). Indeed role-title searches
   # do most of the work here since her opportunities aren't on academic boards.
   # ==========================================================================
-  - name: "Immunology (Daughter 2)"
+  - name: "Immunology (Erin)"
     key: "immunology"
     criteria_file: "criteria/immunology.md"
     prefilter_include: []

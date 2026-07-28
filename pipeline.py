@@ -17,6 +17,8 @@ import sys
 import yaml
 
 import state
+import ai_filter
+import cost
 from ai_filter import filter_jobs
 from deliver import deliver_all
 from sources import build_sources
@@ -85,6 +87,8 @@ def run() -> int:
         print("[pipeline] no recipients configured", file=sys.stderr)
         return 0
 
+    ai_filter.reset_usage()   # start counting tokens fresh for this run
+
     results = []
     any_problem = False
     for rec in recipients:
@@ -92,8 +96,13 @@ def run() -> int:
         results.append(result)
         any_problem = any_problem or had_problem
 
+    # Tally AI cost for this run and update the month-to-date total.
+    cost_summary = cost.record_and_summarize(ai_filter.get_usage())
+    print(f"[pipeline] AI cost today ~${cost_summary['today_cost']:.4f}; "
+          f"month-to-date ~${cost_summary['month_cost']:.4f}", file=sys.stderr)
+
     # One combined email to everyone.
-    deliver_all(results, all_recipients)
+    deliver_all(results, all_recipients, cost_summary)
 
     total = sum(len(r["matches"]) for r in results)
     print(f"\n[pipeline] done. {total} total match(es) across "

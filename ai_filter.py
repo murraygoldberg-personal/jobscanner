@@ -20,6 +20,19 @@ from models import Job
 
 BASE_DIR = os.path.dirname(__file__)
 
+# Token usage accumulator, summed across all API calls in a process. Read and
+# reset by the pipeline after filtering (see reset_usage / get_usage).
+_USAGE = {"input": 0, "output": 0}
+
+
+def reset_usage() -> None:
+    _USAGE["input"] = 0
+    _USAGE["output"] = 0
+
+
+def get_usage() -> dict:
+    return dict(_USAGE)
+
 
 def _prefilter(jobs: list[Job], include: list[str], exclude: list[str]) -> list[Job]:
     inc = [t.lower() for t in (include or [])]
@@ -87,6 +100,13 @@ def _judge_batch(client, criteria: str, batch: list[Job],
         system=system,
         messages=[{"role": "user", "content": user}],
     )
+    # Accumulate token usage for cost reporting. The Anthropic response carries
+    # usage.input_tokens / usage.output_tokens.
+    try:
+        _USAGE["input"] += int(resp.usage.input_tokens)
+        _USAGE["output"] += int(resp.usage.output_tokens)
+    except Exception:  # noqa: BLE001 — never let accounting break the run
+        pass
     text = "".join(b.text for b in resp.content if b.type == "text").strip()
     text = text.replace("```json", "").replace("```", "").strip()
 

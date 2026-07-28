@@ -160,7 +160,8 @@ def _tab_summary(r: dict) -> str:
     return f"{r['name']} ({n}){flag}"
 
 
-def _render_tabbed_email(recipients_results: list[dict]) -> str:
+def _render_tabbed_email(recipients_results: list[dict],
+                         cost_summary: dict | None = None) -> str:
     today = dt.date.today().isoformat()
     header = (
         f'<div style="margin-bottom:16px;font-family:-apple-system,Segoe UI,'
@@ -180,11 +181,22 @@ def _render_tabbed_email(recipients_results: list[dict]) -> str:
             f'background:#f3f4f6;border-radius:6px">📁 {r["name"]}</h3>'
             f'{inner}</div>'
         )
+
+    cost_line = ""
+    if cost_summary:
+        cost_line = (
+            f'<div style="color:#9ca3af;font-size:11px;margin-top:8px">'
+            f'AI cost (estimated) — today: ${cost_summary["today_cost"]:.4f} '
+            f'· {cost_summary["month_name"]} to date: '
+            f'${cost_summary["month_cost"]:.4f}</div>'
+        )
+
     return (
         f'<div style="max-width:680px;margin:0 auto;color:#111827">{header}'
         f'{"".join(panels)}'
         f'<div style="color:#9ca3af;font-size:11px;margin-top:24px">'
         f'Sent to the whole family — every section is visible to everyone.</div>'
+        f'{cost_line}'
         f'</div>'
     )
 
@@ -238,7 +250,8 @@ def _write_digest_file_keyed(key: str, matches: list[Job],
     return path
 
 
-def deliver_all(recipients_results: list[dict], all_recipients: list[str]) -> None:
+def deliver_all(recipients_results: list[dict], all_recipients: list[str],
+                cost_summary: dict | None = None) -> None:
     """Write per-recipient digests and send ONE combined email to everyone."""
     total = sum(len(r["matches"]) for r in recipients_results)
     any_problem = any(r["problems"] for r in recipients_results)
@@ -253,4 +266,5 @@ def deliver_all(recipients_results: list[dict], all_recipients: list[str]) -> No
     subject = f"{config.EMAIL_SUBJECT_PREFIX} Family digest — {total} new — {today}"
     if any_problem:
         subject = f"⚠️ {subject} (source problem)"
-    _post_to_resend(all_recipients, subject, _render_tabbed_email(recipients_results))
+    html = _render_tabbed_email(recipients_results, cost_summary)
+    _post_to_resend(all_recipients, subject, html)
