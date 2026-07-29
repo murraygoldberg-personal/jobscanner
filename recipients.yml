@@ -45,8 +45,8 @@ recipients:
           - "complexity theory researcher"
         location: "Remote"
         country: "usa"
-        results_wanted: 25
-        hours_old: 48
+        results_wanted: 50
+        hours_old: 192
         is_remote: null
         expect_nonzero: false
 
@@ -91,7 +91,7 @@ recipients:
           - "public health scientist PhD"
         location: "Canada"
         country: "canada"
-        results_wanted: 20
-        hours_old: 72
+        results_wanted: 50
+        hours_old: 192
         is_remote: null
         expect_nonzero: false
