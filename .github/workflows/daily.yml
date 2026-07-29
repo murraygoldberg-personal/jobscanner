@@ -4,7 +4,7 @@ on:
   schedule:
     # 13:00 UTC = 06:00 America/Vancouver (PDT). Adjust as you like.
     # Note: GitHub cron can lag by a few minutes and may skip during outages.
-    - cron: "0 13 * * *"
+    - cron: "37 9 * * 2"
   workflow_dispatch: {}   # lets you trigger a run manually from the Actions tab
 
 # Needed so the workflow can commit seen.json / digests back to the repo.
